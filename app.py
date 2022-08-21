@@ -129,7 +129,7 @@ def show_venue(venue_id):
   if base_data is None:
     data={
     "id": venue_id,
-    "name": "",
+    "name": "Venue Not Found",
     "genres": [],
     "address": "",
     "city": "",
