@@ -22,8 +22,7 @@ class Venue(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String)
     address = db.Column(db.String(120))
-    city = db.Column(db.String(120))
-    state = db.Column(db.String(120))
+    city_id = db.Column(db.Integer, db.ForeignKey('City.id'))
     phone = db.Column(db.String(120))
     website = db.Column(db.String(120))
     facebook_link = db.Column(db.String(120))
@@ -46,8 +45,7 @@ class Artist(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String, nullable=False)
-    city = db.Column(db.String(120))
-    state = db.Column(db.String(120))
+    city_id = db.Column(db.Integer, db.ForeignKey('City.id'))
     phone = db.Column(db.String(120))
     website = db.Column(db.String(120))
     facebook_link = db.Column(db.String(120))
@@ -81,5 +79,17 @@ class Show(db.Model):
 
     def __repr__(self):
       return f'<Show: {self.venue_id} {self.artist_id}>'
+
+class City(db.Model):
+    __tablename__ = 'City'
+
+    id = db.Column(db.Integer, primary_key=True)
+    city = db.Column(db.String(120))
+    state = db.Column(db.String(120))
+    venue = db.relationship('Venue', backref='City', lazy=True)
+    artist = db.relationship('Artist', backref='City', lazy=True)
+
+    def __repr__(self):
+      return f'<City: {self.id} {self.city} {self.state}>'
 
 # ✔ Implement Show and Artist models, and complete all model relationships and properties, as a database migration.
