@@ -14,7 +14,7 @@ from logging import Formatter, FileHandler
 from flask_wtf import Form
 from forms import *
 
-from models.models import db, Genre, Artist, Venue, City, Show
+from models.models import db, Genre, Artist, Venue, City, Show, venue_genre, artist_genre
 #----------------------------------------------------------------------------#
 # App Config.
 #----------------------------------------------------------------------------#
@@ -107,6 +107,10 @@ def show_venue(venue_id):
   # ✔: shows the venue page with the given venue_id
   # TODO: genre data to populate, past shows and upcoming shows to populate
   base_data = Venue.query.filter_by(id = venue_id).join(City).add_columns(City.city,City.state).first()
+  genre_data = Venue.query.select_from(Venue).join(venue_genre).join(Genre).add_columns(Genre.name).filter(Venue.id==venue_id).all()
+  genres = []
+  for genre in genre_data:
+    genres.append(genre[1])
 
   if base_data is None:
     data={
@@ -135,7 +139,7 @@ def show_venue(venue_id):
     data={
       "id": venue_id,
       "name": base_data[0].name,
-      "genres": [],
+      "genres": genres,
       "address": base_data[0].address,
       "city": base_data.city,
       "state": base_data.state,
