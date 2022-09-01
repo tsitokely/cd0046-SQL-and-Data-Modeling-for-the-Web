@@ -105,7 +105,8 @@ def venues():
 @app.route('/venues/<int:venue_id>')
 def show_venue(venue_id):
   # ✔: shows the venue page with the given venue_id
-  # TODO: genre data to populate, past shows and upcoming shows to populate
+  # ✔: genre data to populate, 
+  # past shows and upcoming shows to populate
   base_data = Venue.query.filter_by(id = venue_id).join(City).add_columns(City.city,City.state).first()
   genre_data = Venue.query.select_from(Venue).join(venue_genre).join(Genre).add_columns(Genre.name).filter(Venue.id==venue_id).all()
   genres = []
