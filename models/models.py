@@ -73,7 +73,7 @@ class Genre(db.Model):
 class Show(db.Model):
     __tablename__ = 'Show'
 
-    date = db.Column(db.DateTime, nullable=False)
+    date = db.Column(db.DateTime, primary_key=True)
     venue_id = db.Column(db.Integer, db.ForeignKey('Venue.id'), primary_key=True)
     artist_id = db.Column(db.Integer, db.ForeignKey('Artist.id'), primary_key=True)
 
