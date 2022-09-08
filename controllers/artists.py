@@ -1,21 +1,20 @@
 # Imports
-from __main__ import app
-from models.models import db, Artist, City, artist_genre
+from models.models import Artist, City, artist_genre
 from flask import render_template, request, flash, redirect, url_for
 from forms import *
+from flask_sqlalchemy import SQLAlchemy
 
+db = SQLAlchemy()
 #  Artists
 #  ----------------------------------------------------------------
 
 #  List all artists
-@app.route('/artists')
 def artists():
   # ✔: replace with real data returned from querying the database
   data = Artist.query.all()
   return render_template('pages/artists.html', artists=data)
 
 #  Search for artists
-@app.route('/artists/search', methods=['POST'])
 def search_artists():
   # TODO: implement search on artists with partial string search. Ensure it is case-insensitive.
   # seach for "A" should return "Guns N Petals", "Matt Quevado", and "The Wild Sax Band".
@@ -30,7 +29,6 @@ def search_artists():
   }
   return render_template('pages/search_artists.html', results=response, search_term=request.form.get('search_term', ''))
 
-@app.route('/artists/<int:artist_id>')
 def show_artist(artist_id):
   # shows the artist page with the given artist_id
   # TODO: replace with real artist data from the artist table, using artist_id
@@ -85,7 +83,6 @@ def show_artist(artist_id):
 
 #  Update
 #  ----------------------------------------------------------------
-@app.route('/artists/<int:artist_id>/edit', methods=['GET'])
 def edit_artist(artist_id):
   form = ArtistForm()
   artist={
@@ -104,22 +101,18 @@ def edit_artist(artist_id):
   # TODO: populate form with fields from artist with ID <artist_id>
   return render_template('forms/edit_artist.html', form=form, artist=artist)
 
-@app.route('/artists/<int:artist_id>/edit', methods=['POST'])
 def edit_artist_submission(artist_id):
   # TODO: take values from the form submitted, and update existing
   # artist record with ID <artist_id> using the new attributes
-
   return redirect(url_for('show_artist', artist_id=artist_id))
 
 #  Create Artist
 #  ----------------------------------------------------------------
 
-@app.route('/artists/create', methods=['GET'])
 def create_artist_form():
   form = ArtistForm()
   return render_template('forms/new_artist.html', form=form)
 
-@app.route('/artists/create', methods=['POST'])
 def create_artist_submission():
   # called upon submitting the new artist listing form
   cityId = ''

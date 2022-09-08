@@ -1,17 +1,22 @@
 # Imports
-from __main__ import app
-from models.models import db, Genre, Venue, City, venue_genre
+from models.models import Genre, Show, Venue, City, venue_genre
 from flask import render_template, request, flash, redirect, url_for
 from forms import *
+from flask_sqlalchemy import SQLAlchemy
+from datetime import date
+from sqlalchemy.sql.functions import func
 
+db = SQLAlchemy()
 # ------------------ Get venues information -------------------------
 #  List all venues
-@app.route('/venues')
 def venues():
   # TODO: num_upcoming_shows should be aggregated based on number of upcoming shows per venue.
   data = []
   venue_per_city = []
   venue_base_data = Venue.query.all()
+  upcoming_show = Show.query.join(Venue).add_column(Venue.id).filter(Show.date > date.today()).all()
+  test = Show.query(func.count('show_date'),'venue_id').join(Venue).add_column(Venue.id).filter(Show.date > date.today()).group_by('venue_id').all()
+  print(test)
   city_data = City.query.all()
   # TODO: add upcoming show
   for city in city_data:
@@ -31,7 +36,6 @@ def venues():
   return render_template('pages/venues.html', areas=data);
 
 #  List info for specific venue
-@app.route('/venues/<int:venue_id>')
 def show_venue(venue_id):
   # ✔: shows the venue page with the given venue_id
   # ✔: genre data to populate, 
@@ -92,7 +96,6 @@ def show_venue(venue_id):
   return render_template('pages/show_venue.html', venue=data)
 
 # ------------------ Search for venues -------------------------
-@app.route('/venues/search', methods=['POST'])
 def search_venues():
   # ✔: implement search on artists with partial string search. Ensure it is case-insensitive.
   # seach for Hop should return "The Musical Hop".
@@ -115,15 +118,12 @@ def search_venues():
   return render_template('pages/search_venues.html', results=response, search_term=request.form.get('search_term', ''))
 
 # ------------------ Add venues information -------------------------
-
 #  Create Venue - Get form
-@app.route('/venues/create', methods=['GET'])
 def create_venue_form():
   form = VenueForm()
   return render_template('forms/new_venue.html', form=form)
 
 #  Create Venue - Submit data
-@app.route('/venues/create', methods=['POST'])
 def create_venue_submission():
   # ✔: insert form data as a new Venue record in the db, instead
   # ✔: modify data to be the data object returned from db insertion
@@ -166,9 +166,7 @@ def create_venue_submission():
   return render_template('pages/home.html')
 
 # ------------------ Edit venues information -------------------------
-
 # Edit Venue - GET
-@app.route('/venues/<int:venue_id>/edit', methods=['GET'])
 def edit_venue(venue_id):
   search_data = Venue.query.filter_by(id = venue_id).join(City).add_columns(City.city,City.state).first()
   form = VenueForm()
@@ -191,7 +189,6 @@ def edit_venue(venue_id):
   return render_template('forms/edit_venue.html', form=form, venue=venue)
 
 # Edit Venue - POST
-@app.route('/venues/<int:venue_id>/edit', methods=['POST'])
 def edit_venue_submission(venue_id):
   existing_venue = Venue.query.filter_by(id = venue_id).join(City).add_columns(City.city,City.state).first()
   # TODO: take values from the form submitted, and update existing
@@ -232,9 +229,7 @@ def edit_venue_submission(venue_id):
   return redirect(url_for('show_venue', venue_id=venue_id))
 
 # ------------------ Delete venues information -------------------------
-
 #  Delete specific Venue based on a button
-@app.route('/venues/<venue_id>', methods=['DELETE'])
 def delete_venue(venue_id):
   # ✔: Complete this endpoint for taking a venue_id, and using
   # SQLAlchemy ORM to delete a record. Handle cases where the session commit could fail.
