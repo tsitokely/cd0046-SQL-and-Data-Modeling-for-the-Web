@@ -11,7 +11,7 @@ db = SQLAlchemy()
 
 def shows():
   # displays list of shows at /shows
-  # TODO: replace with real venues data.
+  # ✔: replace with real venues data.
   data=[]
   shows = Show.query.join(Venue).join(Artist).add_entity(Venue).add_entity(Artist).all()
   for show in shows:
