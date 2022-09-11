@@ -152,3 +152,20 @@ def create_artist_submission():
   finally:
     db.session.close()
   return render_template('pages/home.html')
+
+# ------------------ Delete artist information -------------------------
+#  Delete specific Artist based on a button
+def delete_artist(artist_id):
+  try:
+    artist_to_delete = Artist.query.get(artist_id)
+    local_object = db.session.merge(artist_to_delete)
+    db.session.delete(local_object)
+    db.session.commit()
+    flash('Artist with name="' + artist_to_delete.name + '" was SUCCESSFULLY DELETED!')
+  except Exception as e:
+    print(e)
+    db.session.rollback()
+    flash('Artist with name="' + artist_to_delete.name + '" was NOT DELETED!')
+  finally:
+    db.session.close()
+  return redirect(url_for('index'))

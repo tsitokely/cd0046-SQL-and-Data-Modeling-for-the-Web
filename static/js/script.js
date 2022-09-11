@@ -13,5 +13,14 @@ document.body.addEventListener('click', (event) => {
               },
           }).then(() => window.location.replace("../"))
       }
+  else if (event.target.matches('.delete-button-artist')){
+    const artistID = event.target.dataset['id'];
+    fetch('/artists/'+ artistID, {
+        method: 'DELETE',
+        headers: {
+          'Content-type': 'application/json; charset=UTF-8'
+        },
+    }).then(() => window.location.replace("../"))
+  }
     else {return}
-          })
+  })
