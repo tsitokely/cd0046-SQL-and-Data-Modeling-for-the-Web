@@ -29,7 +29,7 @@ class Venue(db.Model):
     seeking_talent = db.Column(db.Boolean, default=False)
     seeking_description = db.Column(db.String(500))
     image_link = db.Column(db.String(500))
-    show = db.relationship('Show', backref='Venue', lazy=True)
+    show = db.relationship('Show', backref='Venue', cascade="all, delete", lazy=True)
 
     def __repr__(self):
       return f'<Venue: {self.id} {self.name}>'
@@ -52,7 +52,7 @@ class Artist(db.Model):
     seeking_venue = db.Column(db.Boolean, default=False)
     seeking_description = db.Column(db.String(500))
     image_link = db.Column(db.String(500))
-    show = db.relationship('Show', backref='Artist', lazy=True)
+    show = db.relationship('Show', backref='Artist',cascade="all, delete", lazy=True)
 
     def __repr__(self):
       return f'<Artist: {self.id} {self.name}>'
@@ -74,8 +74,8 @@ class Show(db.Model):
     __tablename__ = 'Show'
 
     date = db.Column(db.DateTime, primary_key=True)
-    venue_id = db.Column(db.Integer, db.ForeignKey('Venue.id'), primary_key=True)
-    artist_id = db.Column(db.Integer, db.ForeignKey('Artist.id'), primary_key=True)
+    venue_id = db.Column(db.Integer, db.ForeignKey('Venue.id', ondelete="CASCADE"), primary_key=True)
+    artist_id = db.Column(db.Integer, db.ForeignKey('Artist.id', ondelete="CASCADE"), primary_key=True)
 
     def __repr__(self):
       return f'<Show: {self.venue_id} {self.artist_id}>'
