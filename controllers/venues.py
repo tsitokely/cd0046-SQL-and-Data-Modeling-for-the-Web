@@ -10,22 +10,20 @@ db = SQLAlchemy()
 # ------------------ Get venues information -------------------------
 #  List all venues
 def venues():
-  # TODO: num_upcoming_shows should be aggregated based on number of upcoming shows per venue.
+  # ✔: num_upcoming_shows should be aggregated based on number of upcoming shows per venue.
   data = []
   venue_per_city = []
   venue_base_data = Venue.query.all()
-  upcoming_show = Show.query.join(Venue).add_column(Venue.id).filter(Show.date > date.today()).all()
-  test = Show.query(func.count('show_date'),'venue_id').join(Venue).add_column(Venue.id).filter(Show.date > date.today()).group_by('venue_id').all()
-  print(test)
   city_data = City.query.all()
-  # TODO: add upcoming show
+  # ✔: add upcoming show
   for city in city_data:
     for venue in venue_base_data:
       if city.id == venue.city_id:
+        upcoming_show = Show.query.filter(Show.venue_id==venue.id).filter(Show.date > date.today()).all()
         venue_per_city.append({
           "id": venue.id,
           "name": venue.name, 
-          "num_upcoming_shows": 0
+          "num_upcoming_shows": len(upcoming_show)
         })
     data.append({
       "city": city.city,
@@ -97,13 +95,12 @@ def show_venue(venue_id):
 
 # ------------------ Search for venues -------------------------
 def search_venues():
-  # ✔: implement search on artists with partial string search. Ensure it is case-insensitive.
+  # ✔: implement search on venues with partial string search. Ensure it is case-insensitive.
   # seach for Hop should return "The Musical Hop".
   # search for "Music" should return "The Musical Hop" and "Park Square Live Music & Coffee"
+  # TODO: num_upcoming show
   search_term=request.form.get('search_term', '')
-  print(search_term)
   search_data = Venue.query.filter(Venue.name.ilike("%"+search_term+"%")).all()
-  print(search_data)
   datastore = []
   for data in search_data:
     datastore.append({
@@ -168,6 +165,7 @@ def create_venue_submission():
 # ------------------ Edit venues information -------------------------
 # Edit Venue - GET
 def edit_venue(venue_id):
+  # TODO: genre
   search_data = Venue.query.filter_by(id = venue_id).join(City).add_columns(City.city,City.state).first()
   form = VenueForm()
   venue={
@@ -184,13 +182,13 @@ def edit_venue(venue_id):
     "seeking_description": search_data[0].seeking_description,
     "image_link": search_data[0].image_link
   }
-  print(venue)
-  # TODO: populate form with values from venue with ID <venue_id>
+  # ✔: populate form with values from venue with ID <venue_id>
   return render_template('forms/edit_venue.html', form=form, venue=venue)
 
 # Edit Venue - POST
 def edit_venue_submission(venue_id):
   existing_venue = Venue.query.filter_by(id = venue_id).join(City).add_columns(City.city,City.state).first()
+  print(existing_venue)
   # TODO: take values from the form submitted, and update existing
   # venue record with ID <venue_id> using the new attributes
   try:
@@ -226,7 +224,7 @@ def edit_venue_submission(venue_id):
     flash('An error occurred: Venue ' + request.form['name'] + ' could not be Updated!!!')
   finally:
     db.session.close()
-  return redirect(url_for('show_venue', venue_id=venue_id))
+  return redirect(url_for('venues_bp.show_venue', venue_id=venue_id))
 
 # ------------------ Delete venues information -------------------------
 #  Delete specific Venue based on a button
