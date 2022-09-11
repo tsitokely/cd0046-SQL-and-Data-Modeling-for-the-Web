@@ -98,15 +98,16 @@ def search_venues():
   # ✔: implement search on venues with partial string search. Ensure it is case-insensitive.
   # seach for Hop should return "The Musical Hop".
   # search for "Music" should return "The Musical Hop" and "Park Square Live Music & Coffee"
-  # TODO: num_upcoming show
+  # ✔: num_upcoming show
   search_term=request.form.get('search_term', '')
   search_data = Venue.query.filter(Venue.name.ilike("%"+search_term+"%")).all()
   datastore = []
   for data in search_data:
+    upcoming_show = Show.query.filter(Show.venue_id==data.id).filter(Show.date > date.today()).all()
     datastore.append({
       "id": data.id,
       "name": data.name,
-      "num_upcoming_shows": 0,
+      "num_upcoming_shows": len(upcoming_show),
     })
   response={
     "count": len(search_data),
