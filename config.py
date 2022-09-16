@@ -10,6 +10,6 @@ DEBUG = True
 
 
 # ✔ IMPLEMENT DATABASE URL
-SQLALCHEMY_DATABASE_URI = 'postgresql://tsito:abc@localhost:5432/fyyur2'
+SQLALCHEMY_DATABASE_URI = 'postgresql://tsito:abc@localhost:5432/fyyur'
 
 SQLALCHEMY_TRACK_MODIFICATIONS = True

@@ -1,12 +1,14 @@
 # Imports
-from models.models import Genre, Show, Venue, City, venue_genre
+from models.models import Genre as ge, Show, Venue, City, db
 from flask import render_template, request, flash, redirect, url_for
 from forms import *
 from flask_sqlalchemy import SQLAlchemy
 from datetime import date
-from sqlalchemy.sql.functions import func
+import traceback
+import logging
 
-db = SQLAlchemy()
+#db = SQLAlchemy()
+
 # ------------------ Get venues information -------------------------
 #  List all venues
 def venues():
@@ -39,10 +41,9 @@ def show_venue(venue_id):
   # ✔: genre data to populate, 
   # past shows and upcoming shows to populate
   base_data = Venue.query.filter_by(id = venue_id).join(City).add_columns(City.city,City.state).first()
-  genre_data = Venue.query.select_from(Venue).join(venue_genre).join(Genre).add_columns(Genre.name).filter(Venue.id==venue_id).all()
-  genres = []
-  for genre in genre_data:
-    genres.append(genre[1])
+  venue = Venue.query.get(venue_id)
+  genres_for_venue = venue.genresRef
+  genres = map(lambda x: x.name, genres_for_venue)
 
   if base_data is None:
     data={
@@ -150,12 +151,17 @@ def create_venue_submission():
     seekingDescForm = request.form.get('seeking_description')
     venue = Venue(name = nameForm, address = addressForm, city_id = cityId, phone = phoneForm, image_link = imageLinkForm, 
       facebook_link = fbLinkForm, website= websiteForm, seeking_talent = seekingTalentValue, seeking_description = seekingDescForm)
+    genres = request.form.getlist('genres')
     db.session.add(venue)
+    for g in genres:
+      gg = ge.query.get(g)
+      db.session.merge(gg)
+      venue.genresRef.append(gg)
     db.session.commit()
     # on successful db insert, flash success
     flash('Venue ' + request.form['name'] + ' was successfully listed!')
   except Exception as e:
-    print(e)
+    traceback.print_exc()
     db.session.rollback()
     # ✔: on unsuccessful db insert, flash an error instead.
     flash('An error occurred: Venue ' + request.form['name'] + ' could not be added!!!')
@@ -168,11 +174,14 @@ def create_venue_submission():
 def edit_venue(venue_id):
   # TODO: genre
   search_data = Venue.query.filter_by(id = venue_id).join(City).add_columns(City.city,City.state).first()
+  venue_ = Venue.query.get(venue_id)
+  genres_for_venue = venue_.genresRef
+  genres = map(lambda x: x.id, genres_for_venue)
   form = VenueForm()
   venue={
     "id": venue_id,
     "name": search_data[0].name,
-    "genres": [],
+    "genres": genres,
     "address": search_data[0].address,
     "city": search_data.city,
     "state": search_data.state,
@@ -188,10 +197,10 @@ def edit_venue(venue_id):
 
 # Edit Venue - POST
 def edit_venue_submission(venue_id):
-  existing_venue = Venue.query.filter_by(id = venue_id).join(City).add_columns(City.city,City.state).first()
-  print(existing_venue)
+  existing_venue = Venue.query.get(venue_id)
   # TODO: take values from the form submitted, and update existing
   # venue record with ID <venue_id> using the new attributes
+  seekingTalentValue = False
   try:
     nameForm = request.form.get('name')
     addressForm = request.form.get('address')
@@ -205,24 +214,42 @@ def edit_venue_submission(venue_id):
     if seekingTalentForm == 'y':
       seekingTalentValue = True
     seekingDescForm = request.form.get('seeking_description')
-    existing_venue[0].name = nameForm
-    existing_venue[0].address = addressForm
-    existing_venue.city = cityForm
-    existing_venue.state = stateForm
-    existing_venue[0].phone = phoneForm
-    existing_venue[0].image_link = imageLinkForm
-    existing_venue[0].facebook_link = fbLinkForm
-    existing_venue[0].website_link = websiteForm
-    existing_venue[0].seeking_talent = seekingTalentValue
-    existing_venue[0].seeking_description = seekingDescForm
+    search_city = City.query.filter(City.city.ilike("%"+cityForm+"%"), City.state.ilike("%"+stateForm+"%")).first()
+    if search_city is None:
+      newCity = City(city = cityForm, state = stateForm)
+      db.session.add(newCity)
+      db.session.flush()
+      db.session.refresh(newCity)
+      cityId = newCity.id
+    else:
+      cityId = search_city.id
+    genresForm = request.form.getlist('genres')
+    current_genre = ge.query.all()
+    for g in current_genre:
+      if g in existing_venue.genresRef:
+        existing_venue.genresRef.remove(g)
+    for gf in genresForm:
+      gg = ge.query.get(gf)
+      db.session.merge(gg)
+      existing_venue.genresRef.append(gg)
+    existing_venue.name = nameForm
+    existing_venue.address = addressForm
+    existing_venue.city_id = cityId
+    existing_venue.phone = phoneForm
+    existing_venue.image_link = imageLinkForm
+    existing_venue.facebook_link = fbLinkForm
+    existing_venue.website_link = websiteForm
+    existing_venue.seeking_talent = seekingTalentValue
+    existing_venue.seeking_description = seekingDescForm
+    db.session.merge(existing_venue)
     db.session.commit()
     # on successful db insert, flash success
     flash('Venue ' + request.form['name'] + ' was successfully Updated!')
-  except Exception as e:
-    print(e)
+  except:
+    traceback.print_exc()
     db.session.rollback()
     # ✔: on unsuccessful db insert, flash an error instead.
-    flash('An error occurred: Venue ' + request.form['name'] + ' could not be Updated!!!')
+    flash('An error occurred: Venue ' + request.form['name'] +' could not be Updated!!!')
   finally:
     db.session.close()
   return redirect(url_for('venues_bp.show_venue', venue_id=venue_id))

@@ -1,8 +1,10 @@
 # Imports
+from inspect import trace
 from models.models import Artist, City, artist_genre
 from flask import render_template, request, flash, redirect, url_for
 from forms import *
 from flask_sqlalchemy import SQLAlchemy
+import traceback
 
 db = SQLAlchemy()
 #  Artists
@@ -16,22 +18,28 @@ def artists():
 
 #  Search for artists
 def search_artists():
-  # TODO: implement search on artists with partial string search. Ensure it is case-insensitive.
+  # ✔: implement search on artists with partial string search. Ensure it is case-insensitive.
   # seach for "A" should return "Guns N Petals", "Matt Quevado", and "The Wild Sax Band".
   # search for "band" should return "The Wild Sax Band".
+  # TODO: num_upcoming show
+  search_term=request.form.get('search_term', '')
+  search_data = Artist.query.filter(Artist.name.ilike("%"+search_term+"%")).all()
+  datastore = []
+  for data in search_data:
+    datastore.append({
+    "id": data.id,
+    "name": data.name,
+    "num_upcoming_shows": 0,
+    })
   response={
-    "count": 1,
-    "data": [{
-      "id": 4,
-      "name": "Guns N Petals",
-      "num_upcoming_shows": 0,
-    }]
+    "count": len(search_data),
+    "data": datastore
   }
   return render_template('pages/search_artists.html', results=response, search_term=request.form.get('search_term', ''))
 
 def show_artist(artist_id):
   # shows the artist page with the given artist_id
-  # TODO: replace with real artist data from the artist table, using artist_id
+  # ✔: replace with real artist data from the artist table, using artist_id
   base_data = Artist.query.filter_by(id = artist_id).join(City).add_columns(City.city,City.state).first()
 
   if base_data is None:
@@ -84,27 +92,74 @@ def show_artist(artist_id):
 #  Update
 #  ----------------------------------------------------------------
 def edit_artist(artist_id):
+  # TODO: genre
+  search_data = Artist.query.filter_by(id = artist_id).join(City).add_columns(City.city,City.state).first()
   form = ArtistForm()
   artist={
     "id": artist_id,
-    "name": "Guns N Petals",
-    "genres": ["Rock n Roll"],
-    "city": "San Francisco",
-    "state": "CA",
-    "phone": "326-123-5000",
-    "website": "https://www.gunsnpetalsband.com",
-    "facebook_link": "https://www.facebook.com/GunsNPetals",
-    "seeking_venue": True,
-    "seeking_description": "Looking for shows to perform at in the San Francisco Bay Area!",
-    "image_link": "https://images.unsplash.com/photo-1549213783-8284d0336c4f?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=300&q=80"
+    "name": search_data[0].name,
+    "genres": [],
+    "city": search_data.city,
+    "state": search_data.state,
+    "phone": search_data[0].phone,
+    "website": search_data[0].website,
+    "facebook_link": search_data[0].facebook_link,
+    "seeking_venue": search_data[0].seeking_venue,
+    "seeking_description": search_data[0].seeking_description,
+    "image_link": search_data[0].image_link
   }
-  # TODO: populate form with fields from artist with ID <artist_id>
+  # ✔: populate form with fields from artist with ID <artist_id>
   return render_template('forms/edit_artist.html', form=form, artist=artist)
 
 def edit_artist_submission(artist_id):
-  # TODO: take values from the form submitted, and update existing
+  # ✔: take values from the form submitted, and update existing
   # artist record with ID <artist_id> using the new attributes
-  return redirect(url_for('show_artist', artist_id=artist_id))
+  existing_artist = Artist.query.filter_by(id = artist_id).join(City).add_columns(City.id, City.city,City.state).first()
+  all_city = City.query.all()
+  seekingVenueValue = False
+  # TODO: take values from the form submitted, and update existing
+  # venue record with ID <venue_id> using the new attributes
+  print(existing_artist)
+  try:
+    nameForm = request.form.get('name')
+    addressForm = request.form.get('address')
+    cityForm = request.form.get('city')
+    print(existing_artist.city)
+    stateForm = request.form.get('state')
+    phoneForm = request.form.get('phone')
+    imageLinkForm = request.form.get('image_link')
+    fbLinkForm = request.form.get('facebook_link')
+    websiteForm = request.form.get('website_link')
+    seekingVenueForm = request.form.get('seeking_venue')
+    if seekingVenueForm == 'y':
+      seekingVenueValue = True
+    seekingDescForm = request.form.get('seeking_description')
+    if (existing_artist.city != cityForm) or (existing_artist.state != stateForm):
+      if cityForm not in all_city[0].city or stateForm not in all_city[0].state:
+        new=City(city=cityForm,state=stateForm)
+        db.session.add(new)
+        db.session.commit
+        x=new
+        print(x)
+    existing_artist[0].name = nameForm
+    existing_artist[0].address = addressForm
+    existing_artist[0].phone = phoneForm
+    existing_artist[0].image_link = imageLinkForm
+    existing_artist[0].facebook_link = fbLinkForm
+    existing_artist[0].website_link = websiteForm
+    existing_artist[0].seeking_venue = seekingVenueValue
+    existing_artist[0].seeking_description = seekingDescForm
+    db.session.commit()
+    # on successful db insert, flash success
+    flash('Artist ' + request.form['name'] + ' was successfully Updated!')
+  except Exception as e:
+    traceback.print_exc()
+    db.session.rollback()
+    # ✔: on unsuccessful db insert, flash an error instead.
+    flash('An error occurred: Artist ' + request.form['name'] + ' could not be Updated!!!')
+  finally:
+    db.session.close()
+  return redirect(url_for('artists_bp.show_artist', artist_id=artist_id))
 
 #  Create Artist
 #  ----------------------------------------------------------------

@@ -57,9 +57,9 @@ from models.models import Genre
 def seed():
   try:
     genre_data = ('Alternative','Blues','Classical','Country','Electronic',
-      'Folk','Funk','Hip-Hop ','Heavy Metal','Instrumental',
-      'Jazz','Musical Theatre','Pop ','Punk','R&B','Reggae',
-      'Rock n Roll ','Soul','Other')
+      'Folk','Funk','Hip-Hop','Heavy Metal','Instrumental',
+      'Jazz','Musical Theatre','Pop','Punk','R&B','Reggae',
+      'Rock n Roll','Soul','Other')
     if Genre.query.get(1)==None:
       for genre in genre_data:
         genre_ = Genre(name=genre)

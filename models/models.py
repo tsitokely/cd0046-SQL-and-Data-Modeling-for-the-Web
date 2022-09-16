@@ -65,7 +65,7 @@ class Genre(db.Model):
     artists = db.relationship('Artist', secondary=artist_genre,
       backref=db.backref('artist', lazy=True))
     venue = db.relationship('Venue', secondary=venue_genre,
-      backref=db.backref('venue', lazy=True))
+      backref=db.backref('genresRef', lazy=True))
 
     def __repr__(self):
       return f'<Genre: {self.id} {self.name}>'
