@@ -1,5 +1,5 @@
 # Imports
-from models.models import Genre as ge, Show, Venue, City, db
+from models.models import Genre as ge, Show, Venue, City, Artist, db
 from flask import render_template, request, flash, redirect, url_for
 from forms import *
 from flask_sqlalchemy import SQLAlchemy
@@ -43,6 +43,20 @@ def show_venue(venue_id):
   venue = Venue.query.get(venue_id)
   genres_for_venue = venue.genresRef
   genres = map(lambda x: x.name, genres_for_venue)
+  upcoming_show = Show.query.filter(Show.venue_id==venue.id).filter(Show.date > date.today()).all()
+  upcoming_show_ = Show.query.filter(Show.venue_id==venue.id).filter(Show.date > date.today()).join(Artist).add_columns(Artist.name,Artist.image_link).all()
+  lists_of_upcoming_show = map(lambda x: {        
+        "artist_id": x[0].artist_id,
+        "artist_name": x.name,
+        "artist_image_link": x.image_link,
+        "start_time": x[0].date.strftime("%m/%d/%Y")} ,upcoming_show_)
+  past_show = Show.query.filter(Show.venue_id==venue.id).filter(Show.date < date.today()).all()
+  past_show_ = Show.query.filter(Show.venue_id==venue.id).filter(Show.date < date.today()).join(Artist).add_columns(Artist.name,Artist.image_link).all()
+  lists_of_past_show = map(lambda x: {        
+        "artist_id": x[0].artist_id,
+        "artist_name": x.name,
+        "artist_image_link": x.image_link,
+        "start_time": x[0].date.strftime("%m/%d/%Y")} ,past_show_)
 
   if base_data is None:
     data={
@@ -81,15 +95,10 @@ def show_venue(venue_id):
       "seeking_talent": base_data[0].seeking_talent,
       "seeking_description": base_data[0].seeking_description,
       "image_link": base_data[0].image_link,
-      "past_shows": [{
-        "artist_id": 0,
-        "artist_name": "",
-        "artist_image_link": "",
-        "start_time": "1970-01-01"
-      }],
-      "upcoming_shows": [],
-      "past_shows_count": 0,
-      "upcoming_shows_count": 0,
+      "past_shows": lists_of_past_show,
+      "upcoming_shows": lists_of_upcoming_show,
+      "past_shows_count": len(past_show),
+      "upcoming_shows_count": len(upcoming_show),
     }
   return render_template('pages/show_venue.html', venue=data)
 
