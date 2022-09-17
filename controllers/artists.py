@@ -1,12 +1,12 @@
 # Imports
 from inspect import trace
-from models.models import Artist, City, artist_genre
+from models.models import Artist, City, Show, Venue, Genre as ge, db
 from flask import render_template, request, flash, redirect, url_for
 from forms import *
 from flask_sqlalchemy import SQLAlchemy
+from datetime import date
 import traceback
 
-db = SQLAlchemy()
 #  Artists
 #  ----------------------------------------------------------------
 
@@ -21,15 +21,16 @@ def search_artists():
   # ✔: implement search on artists with partial string search. Ensure it is case-insensitive.
   # seach for "A" should return "Guns N Petals", "Matt Quevado", and "The Wild Sax Band".
   # search for "band" should return "The Wild Sax Band".
-  # TODO: num_upcoming show
+  # ✔: num_upcoming show
   search_term=request.form.get('search_term', '')
   search_data = Artist.query.filter(Artist.name.ilike("%"+search_term+"%")).all()
   datastore = []
   for data in search_data:
+    upcoming_show = Show.query.filter(Show.venue_id==data.id).filter(Show.date > date.today()).all()
     datastore.append({
     "id": data.id,
     "name": data.name,
-    "num_upcoming_shows": 0,
+    "num_upcoming_shows": len(upcoming_show),
     })
   response={
     "count": len(search_data),
@@ -41,6 +42,9 @@ def show_artist(artist_id):
   # shows the artist page with the given artist_id
   # ✔: replace with real artist data from the artist table, using artist_id
   base_data = Artist.query.filter_by(id = artist_id).join(City).add_columns(City.city,City.state).first()
+  artist = Artist.query.get(artist_id)
+  genres_for_artist = artist.genresRef
+  genres = map(lambda x: x.name, genres_for_artist)
 
   if base_data is None:
     data={
@@ -68,7 +72,7 @@ def show_artist(artist_id):
     data={
       "id": artist_id,
       "name": base_data[0].name,
-      "genres": [],
+      "genres": genres,
       "city": base_data.city,
       "state": base_data.state,
       "phone": base_data[0].phone,
@@ -92,13 +96,16 @@ def show_artist(artist_id):
 #  Update
 #  ----------------------------------------------------------------
 def edit_artist(artist_id):
-  # TODO: genre
+  # ✔: genre
   search_data = Artist.query.filter_by(id = artist_id).join(City).add_columns(City.city,City.state).first()
+  artist = Artist.query.get(artist_id)
+  genres_for_artist = artist.genresRef
+  genres = map(lambda x: x.name, genres_for_artist)
   form = ArtistForm()
   artist={
     "id": artist_id,
     "name": search_data[0].name,
-    "genres": [],
+    "genres": genres,
     "city": search_data.city,
     "state": search_data.state,
     "phone": search_data[0].phone,
@@ -114,17 +121,14 @@ def edit_artist(artist_id):
 def edit_artist_submission(artist_id):
   # ✔: take values from the form submitted, and update existing
   # artist record with ID <artist_id> using the new attributes
-  existing_artist = Artist.query.filter_by(id = artist_id).join(City).add_columns(City.id, City.city,City.state).first()
-  all_city = City.query.all()
+  existing_artist = Artist.query.get(artist_id)
   seekingVenueValue = False
-  # TODO: take values from the form submitted, and update existing
+  # ✔: take values from the form submitted, and update existing
   # venue record with ID <venue_id> using the new attributes
-  print(existing_artist)
   try:
     nameForm = request.form.get('name')
     addressForm = request.form.get('address')
     cityForm = request.form.get('city')
-    print(existing_artist.city)
     stateForm = request.form.get('state')
     phoneForm = request.form.get('phone')
     imageLinkForm = request.form.get('image_link')
@@ -134,21 +138,34 @@ def edit_artist_submission(artist_id):
     if seekingVenueForm == 'y':
       seekingVenueValue = True
     seekingDescForm = request.form.get('seeking_description')
-    if (existing_artist.city != cityForm) or (existing_artist.state != stateForm):
-      if cityForm not in all_city[0].city or stateForm not in all_city[0].state:
-        new=City(city=cityForm,state=stateForm)
-        db.session.add(new)
-        db.session.commit
-        x=new
-        print(x)
-    existing_artist[0].name = nameForm
-    existing_artist[0].address = addressForm
-    existing_artist[0].phone = phoneForm
-    existing_artist[0].image_link = imageLinkForm
-    existing_artist[0].facebook_link = fbLinkForm
-    existing_artist[0].website_link = websiteForm
-    existing_artist[0].seeking_venue = seekingVenueValue
-    existing_artist[0].seeking_description = seekingDescForm
+    search_city = City.query.filter(City.city.ilike("%"+cityForm+"%"), City.state.ilike("%"+stateForm+"%")).first()
+    if search_city is None:
+      newCity = City(city = cityForm, state = stateForm)
+      db.session.add(newCity)
+      db.session.flush()
+      db.session.refresh(newCity)
+      cityId = newCity.id
+    else:
+      cityId = search_city.id
+    genresForm = request.form.getlist('genres')
+    current_genre = ge.query.all()
+    for g in current_genre:
+      if g in existing_artist.genresRef:
+        existing_artist.genresRef.remove(g)
+    for gf in genresForm:
+      gg = ge.query.get(gf)
+      db.session.merge(gg)
+      existing_artist.genresRef.append(gg)
+    existing_artist.name = nameForm
+    existing_artist.address = addressForm
+    existing_artist.city_id = cityId
+    existing_artist.phone = phoneForm
+    existing_artist.image_link = imageLinkForm
+    existing_artist.facebook_link = fbLinkForm
+    existing_artist.website_link = websiteForm
+    existing_artist.seeking_venue = seekingVenueValue
+    existing_artist.seeking_description = seekingDescForm
+    db.session.merge(existing_artist)
     db.session.commit()
     # on successful db insert, flash success
     flash('Artist ' + request.form['name'] + ' was successfully Updated!')
@@ -170,7 +187,6 @@ def create_artist_form():
 
 def create_artist_submission():
   # called upon submitting the new artist listing form
-  cityId = ''
   seekingVenueFormValue = False
   try:
     nameForm = request.form.get('name')
@@ -195,12 +211,17 @@ def create_artist_submission():
     seekingDescForm = request.form.get('seeking_description')
     artist = Artist(name = nameForm, city_id = cityId, phone = phoneForm, image_link = imageLinkForm, 
       facebook_link = fbLinkForm, website= websiteForm, seeking_venue = seekingVenueFormValue, seeking_description = seekingDescForm)
+    genres = request.form.getlist('genres')
     db.session.add(artist)
+    for g in genres:
+      gg = ge.query.get(g)
+      db.session.merge(gg)
+      artist.genresRef.append(gg)
     db.session.commit()
     # on successful db insert, flash success
     flash('Artist ' + request.form['name'] + ' was successfully listed!')
   except Exception as e:
-    print(e)
+    traceback.print_exc()
     db.session.rollback()
     # ✔: on unsuccessful db insert, flash an error instead.
     flash('An error occurred: Artist ' + request.form['name'] + ' could not be added!!!')

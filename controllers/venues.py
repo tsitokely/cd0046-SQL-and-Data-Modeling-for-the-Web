@@ -5,7 +5,6 @@ from forms import *
 from flask_sqlalchemy import SQLAlchemy
 from datetime import date
 import traceback
-import logging
 
 #db = SQLAlchemy()
 
@@ -172,7 +171,7 @@ def create_venue_submission():
 # ------------------ Edit venues information -------------------------
 # Edit Venue - GET
 def edit_venue(venue_id):
-  # TODO: genre
+  # ✔: genre
   search_data = Venue.query.filter_by(id = venue_id).join(City).add_columns(City.city,City.state).first()
   venue_ = Venue.query.get(venue_id)
   genres_for_venue = venue_.genresRef
@@ -198,7 +197,7 @@ def edit_venue(venue_id):
 # Edit Venue - POST
 def edit_venue_submission(venue_id):
   existing_venue = Venue.query.get(venue_id)
-  # TODO: take values from the form submitted, and update existing
+  # ✔: take values from the form submitted, and update existing
   # venue record with ID <venue_id> using the new attributes
   seekingTalentValue = False
   try:

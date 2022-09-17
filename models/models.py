@@ -63,7 +63,7 @@ class Genre(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String, nullable=False)
     artists = db.relationship('Artist', secondary=artist_genre,
-      backref=db.backref('artist', lazy=True))
+      backref=db.backref('genresRef', lazy=True))
     venue = db.relationship('Venue', secondary=venue_genre,
       backref=db.backref('genresRef', lazy=True))
 
