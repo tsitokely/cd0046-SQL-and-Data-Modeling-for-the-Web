@@ -26,7 +26,7 @@ def search_artists():
   search_data = Artist.query.filter(Artist.name.ilike("%"+search_term+"%")).all()
   datastore = []
   for data in search_data:
-    upcoming_show = Show.query.filter(Show.venue_id==data.id).filter(Show.date > date.today()).all()
+    upcoming_show = Show.query.filter(Show.artist_id==data.id).filter(Show.date > date.today()).all()
     datastore.append({
     "id": data.id,
     "name": data.name,
@@ -45,6 +45,20 @@ def show_artist(artist_id):
   artist = Artist.query.get(artist_id)
   genres_for_artist = artist.genresRef
   genres = map(lambda x: x.name, genres_for_artist)
+  upcoming_show = Show.query.filter(Show.artist_id==artist.id).filter(Show.date > date.today()).all()
+  upcoming_show_ = Show.query.filter(Show.artist_id==artist.id).filter(Show.date > date.today()).join(Venue).add_columns(Venue.name,Venue.image_link).all()
+  lists_of_upcoming_show = map(lambda x: {        
+        "venue_id": x[0].venue_id,
+        "venue_name": x.name,
+        "venue_image_link": x.image_link,
+        "start_time": x[0].date.strftime("%m/%d/%Y")} ,upcoming_show_)
+  past_show = Show.query.filter(Show.artist_id==artist.id).filter(Show.date < date.today()).all()
+  past_show_ = Show.query.filter(Show.artist_id==artist.id).filter(Show.date < date.today()).join(Venue).add_columns(Venue.name,Venue.image_link).all()
+  lists_of_past_show = map(lambda x: {        
+        "venue_id": x[0].venue_id,
+        "venue_name": x.name,
+        "venue_image_link": x.image_link,
+        "start_time": x[0].date.strftime("%m/%d/%Y")} ,past_show_)
 
   if base_data is None:
     data={
@@ -59,12 +73,7 @@ def show_artist(artist_id):
     "seeking_venue": False,
     "seeking_description": "",
     "image_link": "",
-    "past_shows": [{
-      "venue_id": 0,
-      "venue_name": "",
-      "venue_image_link": "",
-      "start_time": "1970-01-01"
-    }],
+    "past_shows": [],
     "upcoming_shows": [],
     "past_shows_count": 0,
     "upcoming_shows_count": 0}
@@ -81,15 +90,10 @@ def show_artist(artist_id):
       "seeking_venue": base_data[0].seeking_venue,
       "seeking_description": base_data[0].seeking_description,
       "image_link": base_data[0].image_link,
-      "past_shows": [{
-        "venue_id": 0,
-        "venue_name": "",
-        "venue_image_link": "",
-        "start_time": "1970-01-01"
-      }],
-      "upcoming_shows": [],
-      "past_shows_count": 0,
-      "upcoming_shows_count": 0,
+      "past_shows": lists_of_past_show,
+      "upcoming_shows": lists_of_upcoming_show,
+      "past_shows_count": len(past_show),
+      "upcoming_shows_count": len(upcoming_show),
     }
   return render_template('pages/show_artist.html', artist=data)
 
